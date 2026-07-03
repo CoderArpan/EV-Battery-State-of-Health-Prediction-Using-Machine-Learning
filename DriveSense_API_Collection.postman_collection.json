@@ -1,0 +1,175 @@
+{
+	"info": {
+		"_postman_id": "4155b410-d0db-46be-8f3e-4fa01ab46851",
+		"name": "DriveSense EV Battery API (Hackathon Ed.)",
+		"description": "API endpoints for the DriveSense EV Battery State of Health Analytics Dashboard. Powered by FastAPI.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Metrics",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/metrics",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"metrics"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Feature Importance",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/feature-importance",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"feature-importance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dataset Preview",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/dataset",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"dataset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Predict Battery SoH",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Car_Model\": \"Nissan Leaf\",\n  \"Battery_Type\": \"NMC\",\n  \"Battery_Capacity_kWh\": 40.0,\n  \"Vehicle_Age_Months\": 44,\n  \"Total_Charging_Cycles\": 259,\n  \"Avg_Temperature_C\": 12.8,\n  \"Fast_Charge_Ratio\": 0.18,\n  \"Avg_Discharge_Rate_C\": 2.19,\n  \"Driving_Style\": \"Moderate\",\n  \"Internal_Resistance_Ohm\": 0.0562\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/predict",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"predict"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Prescriptive Analytics (What-If)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Car_Model\": \"Tesla Model 3\",\n  \"Battery_Type\": \"LFP\",\n  \"Battery_Capacity_kWh\": 60.0,\n  \"Vehicle_Age_Months\": 24,\n  \"Total_Charging_Cycles\": 150,\n  \"Avg_Temperature_C\": 36.5,\n  \"Fast_Charge_Ratio\": 0.60,\n  \"Avg_Discharge_Rate_C\": 3.5,\n  \"Driving_Style\": \"Aggressive\",\n  \"Internal_Resistance_Ohm\": 0.042\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/prescriptive-analytics",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"prescriptive-analytics"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AI Mechanic Report",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Car_Model\": \"Tesla Model 3\",\n  \"Battery_Type\": \"LFP\",\n  \"Battery_Capacity_kWh\": 60.0,\n  \"Vehicle_Age_Months\": 24,\n  \"Total_Charging_Cycles\": 150,\n  \"Avg_Temperature_C\": 36.5,\n  \"Fast_Charge_Ratio\": 0.60,\n  \"Avg_Discharge_Rate_C\": 3.5,\n  \"Driving_Style\": \"Aggressive\",\n  \"Internal_Resistance_Ohm\": 0.042\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/mechanic-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"mechanic-report"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
