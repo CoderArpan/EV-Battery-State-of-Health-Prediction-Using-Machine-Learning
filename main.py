@@ -12,7 +12,6 @@ from functools import lru_cache
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
 
 # Import our modular ML engine
@@ -78,8 +77,7 @@ app = FastAPI(
     title="DriveSense EV Battery API",
     description="High-performance API for EV Battery State of Health analysis with ML caching.",
     version="2.0.0",
-    lifespan=lifespan,
-    default_response_class=ORJSONResponse
+    lifespan=lifespan
 )
 
 app.add_middleware(
