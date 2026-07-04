@@ -2,23 +2,21 @@
 DriveSense EV Battery Analytics API - FastAPI Backend
 ====================================================
 Hackathon-winning grade backend featuring Pydantic validation, 
-advanced ML insights, and auto-generated Swagger UI docs.
+advanced ML insights, modular architecture, caching, and ORJSON for speed.
 """
 
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import Any, Dict, List
+from functools import lru_cache
 
 import numpy as np
-import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+
+# Import our modular ML engine
+from ml_engine import MLEngine
 
 # ---------------------------------------------------------------------------
 # Logging Setup
@@ -30,8 +28,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global state to hold ML models and dataset info
-ml_models: Dict[str, Any] = {}
+# Initialize ML Engine
+ml = MLEngine()
 
 # ---------------------------------------------------------------------------
 # Pydantic Schemas for Request Validation
@@ -65,88 +63,25 @@ class BatteryFeatures(BaseModel):
         }
 
 # ---------------------------------------------------------------------------
-# ML Initialization
+# Startup Event
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Startup ---
-    dataset_path = Path(__file__).parent / "archive (2) (1).csv"
-    if not dataset_path.exists():
-        logger.error("Dataset not found at %s", dataset_path)
-        raise FileNotFoundError(f"Dataset not found: {dataset_path}")
-
-    logger.info("Loading dataset from %s …", dataset_path)
-    df = pd.read_csv(dataset_path)
-    raw_df = df.copy()
-
-    df = df.drop_duplicates()
-    if "Vehicle_ID" in df.columns:
-        df = df.drop("Vehicle_ID", axis=1)
-
-    encoders = {}
-    cat_cols = ["Car_Model", "Battery_Type", "Driving_Style", "Battery_Status"]
-    for col in cat_cols:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        encoders[col] = le
-
-    X = df.drop(["SoH_Percent", "Battery_Status"], axis=1)
-    y = df["SoH_Percent"]
-    feature_names = X.columns.tolist()
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
-
-    logger.info("Training RandomForestRegressor...")
-    model = RandomForestRegressor(
-        n_estimators=200, max_depth=20, min_samples_split=2, min_samples_leaf=1, random_state=42, n_jobs=-1
-    )
-    model.fit(X_train, y_train)
-    logger.info("Model training complete.")
-
-    predictions = model.predict(X_test)
-    mae = mean_absolute_error(y_test, predictions)
-    mse = mean_squared_error(y_test, predictions)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, predictions)
-
-    # Store in global state
-    ml_models.update({
-        "raw_df": raw_df,
-        "clean_df": df,
-        "model": model,
-        "encoders": encoders,
-        "feature_names": feature_names,
-        "metrics": {
-            "mae": round(mae, 4),
-            "mse": round(mse, 4),
-            "rmse": round(rmse, 4),
-            "r2": round(r2, 4),
-            "accuracy": round(r2 * 100, 2),
-            "total_samples": len(df),
-            "train_samples": len(X_train),
-            "test_samples": len(X_test)
-        },
-        "test_data": {
-            "y_test": y_test.tolist(),
-            "predictions": predictions.tolist()
-        }
-    })
-    
+    # Load from disk or train if missing
+    ml.load_or_train()
     yield
-    # --- Shutdown ---
-    ml_models.clear()
 
 # ---------------------------------------------------------------------------
-# FastAPI App
+# FastAPI App using ORJSONResponse for speed
 # ---------------------------------------------------------------------------
 app = FastAPI(
     title="DriveSense EV Battery API",
-    description="Hackathon-grade API for EV Battery State of Health analysis, predictive maintenance, and mechanic reports.",
-    version="1.0.0",
-    lifespan=lifespan
+    description="High-performance API for EV Battery State of Health analysis with ML caching.",
+    version="2.0.0",
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse
 )
 
-# Enable CORS for frontend flexibility
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -156,62 +91,38 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Helper Functions
-# ---------------------------------------------------------------------------
-def predict_soh(data: dict) -> float:
-    """Predict SoH using the loaded ML model and encoders."""
-    encoders = ml_models["encoders"]
-    feature_names = ml_models["feature_names"]
-    
-    row = {}
-    for feat in feature_names:
-        if feat in ("Car_Model", "Battery_Type", "Driving_Style"):
-            try:
-                le = encoders[feat]
-                row[feat] = int(le.transform([data[feat]])[0])
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid value for '{feat}': {data[feat]}")
-        else:
-            row[feat] = float(data[feat])
-
-    input_df = pd.DataFrame([row], columns=feature_names)
-    prediction = ml_models["model"].predict(input_df)[0]
-    return round(float(prediction), 4)
-
-def determine_status(soh: float) -> str:
-    if soh >= 90: return "Healthy"
-    if soh >= 80: return "Moderate"
-    return "Critical"
-
-# ---------------------------------------------------------------------------
-# Core Endpoints
+# Core Endpoints (With caching for static data)
 # ---------------------------------------------------------------------------
 @app.get("/", tags=["General"])
 def read_root():
     return {"message": "Welcome to DriveSense API. Go to /docs for Swagger UI."}
 
 @app.get("/api/metrics", tags=["Analytics"])
+@lru_cache(maxsize=1)
 def get_metrics():
-    return ml_models["metrics"]
+    return ml.model_data["metrics"]
 
 @app.get("/api/feature-importance", tags=["Analytics"])
+@lru_cache(maxsize=1)
 def get_feature_importance():
-    importances = ml_models["model"].feature_importances_
+    importances = ml.model_data["model"].feature_importances_
     return {
-        "features": ml_models["feature_names"],
+        "features": ml.model_data["feature_names"],
         "importances": [round(float(i), 4) for i in importances]
     }
 
 @app.get("/api/predictions", tags=["Analytics"])
+@lru_cache(maxsize=1)
 def get_test_predictions():
     return {
-        "actual": [round(float(v), 4) for v in ml_models["test_data"]["y_test"]],
-        "predicted": [round(float(v), 4) for v in ml_models["test_data"]["predictions"]]
+        "actual": [round(float(v), 4) for v in ml.model_data["test_data"]["y_test"]],
+        "predicted": [round(float(v), 4) for v in ml.model_data["test_data"]["predictions"]]
     }
 
 @app.get("/api/dataset", tags=["Data Exploration"])
+@lru_cache(maxsize=1)
 def get_dataset_preview():
-    raw = ml_models["raw_df"]
+    raw = ml.model_data["raw_df"]
     preview = raw.head(100)
     return {
         "columns": preview.columns.tolist(),
@@ -230,8 +141,9 @@ def get_dataset_preview():
     }
 
 @app.get("/api/correlation", tags=["Data Exploration"])
+@lru_cache(maxsize=1)
 def get_correlation_matrix():
-    df = ml_models["clean_df"]
+    df = ml.model_data["clean_df"]
     corr = df.corr()
     return {
         "labels": corr.columns.tolist(),
@@ -239,8 +151,9 @@ def get_correlation_matrix():
     }
 
 @app.get("/api/distribution", tags=["Data Exploration"])
+@lru_cache(maxsize=1)
 def get_soh_distribution():
-    raw = ml_models["raw_df"]
+    raw = ml.model_data["raw_df"]
     counts, bins = np.histogram(raw["SoH_Percent"], bins=20)
     labels = [f"{bins[i]:.1f}-{bins[i+1]:.1f}" for i in range(len(bins)-1)]
     return {
@@ -249,8 +162,9 @@ def get_soh_distribution():
     }
 
 @app.get("/api/status-distribution", tags=["Data Exploration"])
+@lru_cache(maxsize=1)
 def get_status_distribution():
-    raw = ml_models["raw_df"]
+    raw = ml.model_data["raw_df"]
     counts = raw["Battery_Status"].value_counts()
     return {
         "labels": counts.index.tolist(),
@@ -258,8 +172,9 @@ def get_status_distribution():
     }
 
 @app.get("/api/form-options", tags=["Data Exploration"])
+@lru_cache(maxsize=1)
 def get_form_options():
-    raw = ml_models["raw_df"]
+    raw = ml.model_data["raw_df"]
     return {
         "car_models": sorted(raw["Car_Model"].unique().tolist()),
         "battery_types": sorted(raw["Battery_Type"].unique().tolist()),
@@ -267,25 +182,23 @@ def get_form_options():
     }
 
 # ---------------------------------------------------------------------------
-# Hackathon-Winning Endpoints (AI & Predictive Analytics)
+# Predictive Endpoints
 # ---------------------------------------------------------------------------
 @app.post("/api/predict", tags=["Predictive Engine"])
 def predict_battery_health(features: BatteryFeatures):
-    """Predict Battery State of Health (SoH) based on input parameters."""
-    soh_prediction = predict_soh(features.dict())
-    return {
-        "soh_prediction": soh_prediction,
-        "status": determine_status(soh_prediction)
-    }
+    try:
+        soh_prediction = ml.predict(features.dict())
+        return {
+            "soh_prediction": soh_prediction,
+            "status": ml.determine_status(soh_prediction)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/prescriptive-analytics", tags=["Predictive Engine"])
 def prescriptive_analytics(features: BatteryFeatures):
-    """
-    Perform a 'What-If' analysis to see how changing driving behavior 
-    or charging habits impacts battery health.
-    """
     base_data = features.dict()
-    base_soh = predict_soh(base_data)
+    base_soh = ml.predict(base_data)
     
     scenarios = []
     
@@ -293,7 +206,7 @@ def prescriptive_analytics(features: BatteryFeatures):
     if base_data["Fast_Charge_Ratio"] > 0.05:
         scenario_data = base_data.copy()
         scenario_data["Fast_Charge_Ratio"] = scenario_data["Fast_Charge_Ratio"] * 0.5
-        new_soh = predict_soh(scenario_data)
+        new_soh = ml.predict(scenario_data)
         scenarios.append({
             "action": "Reduce fast charging dependency by 50%",
             "new_soh": new_soh,
@@ -304,47 +217,39 @@ def prescriptive_analytics(features: BatteryFeatures):
     if base_data["Driving_Style"] != "Eco":
         scenario_data = base_data.copy()
         scenario_data["Driving_Style"] = "Eco"
-        new_soh = predict_soh(scenario_data)
+        new_soh = ml.predict(scenario_data)
         scenarios.append({
             "action": "Adopt 'Eco' driving style",
             "new_soh": new_soh,
             "improvement": round(new_soh - base_soh, 4)
         })
 
-    # Scenario 3: Better Temperature Management (keep close to 22C)
+    # Scenario 3: Better Temperature Management
     if abs(base_data["Avg_Temperature_C"] - 22.0) > 5.0:
         scenario_data = base_data.copy()
-        # Bring temp closer to ideal 22C
         scenario_data["Avg_Temperature_C"] = 22.0
-        new_soh = predict_soh(scenario_data)
+        new_soh = ml.predict(scenario_data)
         scenarios.append({
             "action": "Optimize battery thermal management to ~22°C",
             "new_soh": new_soh,
             "improvement": round(new_soh - base_soh, 4)
         })
         
-    # Sort scenarios by highest improvement
     scenarios = sorted(scenarios, key=lambda x: x["improvement"], reverse=True)
 
     return {
         "current_soh": base_soh,
-        "current_status": determine_status(base_soh),
+        "current_status": ml.determine_status(base_soh),
         "scenarios": scenarios
     }
 
 @app.post("/api/mechanic-report", tags=["Predictive Engine"])
 def generate_mechanic_report(features: BatteryFeatures):
-    """
-    Generate an AI-style human-readable mechanic's diagnostic report 
-    based on the raw data parameters.
-    """
     data = features.dict()
-    soh = predict_soh(data)
-    status = determine_status(soh)
+    soh = ml.predict(data)
+    status = ml.determine_status(soh)
     
-    # Generate insights based on rules
     insights = []
-    
     if data["Fast_Charge_Ratio"] > 0.3:
         insights.append(f"The battery is being fast-charged very frequently ({data['Fast_Charge_Ratio']*100:.1f}% of the time). This accelerates lithium plating and structural degradation.")
     
@@ -362,7 +267,6 @@ def generate_mechanic_report(features: BatteryFeatures):
     if data["Total_Charging_Cycles"] > 1000:
         insights.append(f"The battery has endured a high number of charge cycles ({int(data['Total_Charging_Cycles'])}), natural chemical exhaustion is expected.")
 
-    # Construct the report text
     report_text = f"Diagnostic Report for {data['Car_Model']} ({data['Battery_Type']} Battery)\n\n"
     report_text += f"Current State of Health (SoH) is predicted at {soh:.2f}%, which is classified as {status}.\n\n"
     
@@ -384,4 +288,4 @@ def generate_mechanic_report(features: BatteryFeatures):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -4,3 +4,5 @@ pydantic
 pandas
 numpy
 scikit-learn
+joblib
+orjson
