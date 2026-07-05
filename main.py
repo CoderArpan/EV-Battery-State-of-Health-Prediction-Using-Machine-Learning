@@ -12,6 +12,8 @@ from functools import lru_cache
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 # Import our modular ML engine
@@ -42,7 +44,7 @@ class BatteryFeatures(BaseModel):
     Avg_Temperature_C: float = Field(..., description="Average operating temperature in Celsius")
     Fast_Charge_Ratio: float = Field(..., description="Ratio of fast charges to total charges (0.0 to 1.0)")
     Avg_Discharge_Rate_C: float = Field(..., description="Average discharge rate (C-rate)")
-    Driving_Style: str = Field(..., description="E.g., 'Aggressive', 'Moderate', 'Eco'")
+    Driving_Style: str = Field(..., description="E.g., 'Aggressive', 'Moderate', 'Conservative'")
     Internal_Resistance_Ohm: float = Field(..., description="Internal resistance in Ohms")
 
     class Config:
@@ -88,12 +90,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount the static directory for the frontend
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # ---------------------------------------------------------------------------
 # Core Endpoints (With caching for static data)
 # ---------------------------------------------------------------------------
 @app.get("/", tags=["General"])
 def read_root():
-    return {"message": "Welcome to DriveSense API. Go to /docs for Swagger UI."}
+    # Serve the frontend dashboard
+    return FileResponse("static/index.html")
 
 @app.get("/api/metrics", tags=["Analytics"])
 @lru_cache(maxsize=1)
@@ -211,13 +217,13 @@ def prescriptive_analytics(features: BatteryFeatures):
             "improvement": round(new_soh - base_soh, 4)
         })
         
-    # Scenario 2: Improve Driving Style to 'Eco'
-    if base_data["Driving_Style"] != "Eco":
+    # Scenario 2: Improve Driving Style to 'Conservative'
+    if base_data["Driving_Style"] != "Conservative":
         scenario_data = base_data.copy()
-        scenario_data["Driving_Style"] = "Eco"
+        scenario_data["Driving_Style"] = "Conservative"
         new_soh = ml.predict(scenario_data)
         scenarios.append({
-            "action": "Adopt 'Eco' driving style",
+            "action": "Adopt 'Conservative' driving style",
             "new_soh": new_soh,
             "improvement": round(new_soh - base_soh, 4)
         })

@@ -1,0 +1,399 @@
+:root {
+    /* Screenshot-matching Dark Analytics Theme */
+    --bg-main: #0b0d12;
+    --bg-card: #12151c;
+    
+    --border-color: #1a1e27;
+    --border-hover: #2a303e;
+    
+    --primary: #00d4aa;       /* Neon Teal/Green from screenshot */
+    --primary-glow: rgba(0, 212, 170, 0.15);
+    
+    --secondary: #f0b429;     /* Warm Amber for MAE/RMSE accents */
+    --accent-red: #ef4444;    /* For critical statuses */
+    --accent-blue: #0ea5e9;   
+    
+    --text-primary: #e2e8f0;
+    --text-secondary: #64748b;
+    --text-muted: #475569;
+    
+    --font-sans: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    --radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+/* --- Topbar --- */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--bg-main);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bolt-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--primary);
+    fill: var(--primary);
+}
+
+.brand h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+}
+
+.tagline {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 8px;
+    padding-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.top-badges {
+    display: flex;
+    gap: 12px;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+/* --- Layout --- */
+.dashboard-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* --- Analytics Cards --- */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- Metrics Strip --- */
+.metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.metric-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 24px;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.metric-value {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+}
+
+.metric-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.metric-accent {
+    position: absolute;
+    left: 0;
+    top: 20px;
+    bottom: 20px;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+}
+.metric-accent.primary { background: var(--primary); }
+.metric-accent.secondary { background: var(--secondary); }
+
+/* --- Analytics Grid --- */
+.charts-grid-row-1 {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+}
+
+.charts-grid-row-2 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.card-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+}
+.dataset-badge {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    padding: 4px 8px;
+    border-radius: 100px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+.chart-container.tall { height: 400px; }
+.chart-container.short { height: 250px; }
+
+/* --- Circular Gauge (Row 1 Left) --- */
+.gauge-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 250px;
+}
+
+.gauge-svg {
+    transform: rotate(-90deg);
+    width: 180px;
+    height: 180px;
+}
+.gauge-bg {
+    fill: none;
+    stroke: #1e232e;
+    stroke-width: 8;
+}
+.gauge-fill {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 471.24; /* 2*pi*75 */
+    stroke-dashoffset: 471.24;
+    transition: stroke-dashoffset 1.5s ease;
+}
+
+.gauge-center-text {
+    position: absolute;
+    text-align: center;
+    margin-top: -10px;
+}
+.gauge-center-text h1 {
+    font-family: var(--font-mono);
+    font-size: 2.2rem;
+    color: #fff;
+    line-height: 1;
+}
+.gauge-center-text span {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.gauge-stats {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 20px;
+    padding: 0 40px;
+}
+.gauge-stat-box {
+    text-align: center;
+}
+.gauge-stat-box .label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.gauge-stat-box .val {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+/* --- Correlation Matrix Table --- */
+.correlation-wrapper {
+    overflow-x: auto;
+    padding-bottom: 16px;
+}
+.corr-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+}
+.corr-table th, .corr-table td {
+    padding: 8px;
+    text-align: center;
+    min-width: 40px;
+}
+.corr-table th {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.corr-table th.rot {
+    height: 120px;
+    white-space: nowrap;
+    position: relative;
+}
+.corr-table th.rot > div {
+    transform: translate(15px, 45px) rotate(270deg);
+    width: 30px;
+}
+.corr-table td.label-col {
+    text-align: right;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    padding-right: 16px;
+}
+.corr-cell {
+    border-radius: 4px;
+    color: rgba(255,255,255,0.9);
+}
+
+/* --- Prediction Form (Bottom) --- */
+.prediction-section {
+    margin-top: 24px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 32px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.input-group label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+.input-group input, .input-group select {
+    background: #1a1e27;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+.input-group input:focus, .input-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.result-card {
+    margin-top: 24px;
+    border-color: var(--primary);
+    background: rgba(0, 212, 170, 0.05);
+}
+.hidden { display: none !important; }
+
+/* Status coloring inside prediction */
+.status-badge.large {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 8px;
+}
+.status-Healthy { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.status-Moderate { background: rgba(240, 180, 41, 0.2); color: #f0b429; }
+.status-Critical { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.mechanic-report p { margin-top: 8px; color: var(--text-primary); font-size: 0.9rem;}
+.scenario-item { margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);}

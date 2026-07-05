@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoltSight | Battery Intelligence</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <svg class="bolt-icon" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <h1>VoltSight <span class="tagline">Battery Intelligence Platform</span></h1>
+        </div>
+        <div class="top-badges">
+            <div class="status-badge">
+                <span class="pulse-dot"></span>
+                <span id="server-status">Model Active</span>
+            </div>
+            <div class="status-badge">
+                <span id="stat-vehicles">0</span> vehicles
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        
+        <!-- Metrics Strip -->
+        <section class="metrics-strip">
+            <div class="card metric-card">
+                <div class="metric-accent primary"></div>
+                <span class="metric-label">R² SCORE</span>
+                <span class="metric-value" id="metric-r2">0.0000</span>
+                <span class="metric-desc">Model fit</span>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-accent secondary"></div>
+                <span class="metric-label">MAE</span>
+                <span class="metric-value" id="metric-mae">0.0000</span>
+                <span class="metric-desc">Mean absolute error</span>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-accent secondary"></div>
+                <span class="metric-label">RMSE</span>
+                <span class="metric-value" id="metric-rmse">0.0000</span>
+                <span class="metric-desc">Root mean sq error</span>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-accent primary"></div>
+                <span class="metric-label">ACCURACY</span>
+                <span class="metric-value" id="metric-accuracy">0.00%</span>
+                <span class="metric-desc">Within ±5% SoH</span>
+            </div>
+        </section>
+
+        <!-- Charts Row 1 -->
+        <section class="charts-grid-row-1">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Average SoH</h2>
+                    <span class="dataset-badge">1000 vehicles</span>
+                </div>
+                <div class="gauge-wrapper">
+                    <svg class="gauge-svg" viewBox="0 0 160 160">
+                        <circle class="gauge-bg" cx="80" cy="80" r="75"></circle>
+                        <circle class="gauge-fill" id="avg-gauge-fill" cx="80" cy="80" r="75"></circle>
+                    </svg>
+                    <div class="gauge-center-text">
+                        <h1 id="stat-avg-soh">0%</h1>
+                        <span>State of<br>Health</span>
+                    </div>
+                </div>
+                <div class="gauge-stats">
+                    <div class="gauge-stat-box">
+                        <span class="label">Min</span>
+                        <span class="val" id="stat-min-soh">0%</span>
+                    </div>
+                    <div class="gauge-stat-box">
+                        <span class="label">Avg</span>
+                        <span class="val" id="stat-avg-soh-bottom">0%</span>
+                    </div>
+                    <div class="gauge-stat-box">
+                        <span class="label">Max</span>
+                        <span class="val" id="stat-max-soh">0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Actual vs Predicted SoH</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-scatter"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Row 2 -->
+        <section class="charts-grid-row-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Feature Importance</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-features"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Battery Status</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-status"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Row 3 -->
+        <section class="full-width">
+            <div class="card">
+                <div class="card-header">
+                    <h2>SoH Distribution</h2>
+                </div>
+                <div class="chart-container short">
+                    <canvas id="chart-distribution"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Row 4 -->
+        <section class="full-width">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Feature Correlation Matrix</h2>
+                </div>
+                <div class="correlation-wrapper">
+                    <table class="corr-table" id="corr-table">
+                        <!-- JS injects here -->
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Prediction Section (Kept from previous) -->
+        <section class="prediction-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Predict Battery Health (AI Mechanic)</h2>
+                </div>
+                <form id="prediction-form">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Car Model</label>
+                            <select id="input-car-model" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Battery Type</label>
+                            <select id="input-battery-type" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Driving Style</label>
+                            <select id="input-driving-style" required></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Capacity (kWh)</label>
+                            <input type="number" id="input-capacity" value="40.0" step="0.1" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Age (Months)</label>
+                            <input type="number" id="input-age" value="44" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Cycles</label>
+                            <input type="number" id="input-cycles" value="259" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Temp (°C)</label>
+                            <input type="number" id="input-temp" value="25.5" step="0.1" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Fast Charge</label>
+                            <input type="number" id="input-fast-charge" value="0.2" step="0.01" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Discharge (C)</label>
+                            <input type="number" id="input-discharge" value="1.5" step="0.1" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Res (Ω)</label>
+                            <input type="number" id="input-resistance" value="0.05" step="0.001" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="predict-btn">Run Diagnostics</button>
+                </form>
+
+                <div class="result-card hidden" id="result-card">
+                    <div style="display:flex; align-items:center; gap: 20px;">
+                        <div>
+                            <span style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase;">Predicted SoH</span>
+                            <h2 style="font-family:var(--font-mono); font-size:2rem; color:var(--primary);" id="result-soh">0%</h2>
+                        </div>
+                        <div class="status-badge large" id="result-status">Unknown</div>
+                    </div>
+                    <div class="mechanic-report">
+                        <p id="report-text"></p>
+                    </div>
+                    <div id="scenarios-list"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
